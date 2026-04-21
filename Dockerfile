@@ -1,16 +1,8 @@
-FROM php:8.2-apache
+FROM php:8.2-cli
 
-# Reset semua MPM
-RUN a2dismod mpm_event || true \
- && a2dismod mpm_worker || true \
- && a2dismod mpm_prefork || true \
- && a2enmod mpm_prefork
+WORKDIR /app
+COPY . .
 
-# Copy project
-COPY . /var/www/html/
+RUN chmod -R 777 uploads
 
-# Set permission uploads
-RUN chmod -R 777 /var/www/html/uploads
-
-# Force Apache run
-CMD ["apache2-foreground"]
+CMD ["php", "-S", "0.0.0.0:8080"]

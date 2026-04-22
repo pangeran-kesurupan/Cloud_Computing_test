@@ -1,243 +1,225 @@
 <?php
-$uploadDir = "uploads/";
+$uploadDir = __DIR__ . "/uploads/";
 
 $files = [];
 if (is_dir($uploadDir)) {
-    $items = scandir($uploadDir);
-    foreach ($items as $item) {
+    foreach (scandir($uploadDir) as $item) {
         if ($item !== "." && $item !== "..") {
-            $filePath = $uploadDir . $item;
-            if (is_file($filePath)) {
+            $path = $uploadDir . $item;
+            if (is_file($path)) {
                 $files[] = [
                     'name' => $item,
-                    'size' => filesize($filePath),
-                    'modified' => filemtime($filePath),
+                    'size' => filesize($path),
+                    'modified' => filemtime($path),
                 ];
             }
         }
     }
 }
 
-function formatFileSize(int $bytes): string
-{
-    if ($bytes >= 1024 * 1024) {
-        return round($bytes / (1024 * 1024), 2) . " MB";
-    }
-    if ($bytes >= 1024) {
-        return round($bytes / 1024, 2) . " KB";
-    }
-    return $bytes . " B";
+function formatFileSize($bytes) {
+    if ($bytes >= 1048576) return round($bytes/1048576,2)." MB";
+    if ($bytes >= 1024) return round($bytes/1024,2)." KB";
+    return $bytes." B";
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Cloud Storage</title>
+<meta charset="UTF-8">
+<title>MyCloud</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+<style>
+/* 🌈 BACKGROUND ANIMATION */
+body{
+    margin:0;
+    font-family:system-ui;
+    background: linear-gradient(270deg,#0f172a,#1e3a8a,#2563eb);
+    background-size:600% 600%;
+    animation:bgMove 12s ease infinite;
+    color:#1e293b;
+}
 
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            margin: 0;
-            background: linear-gradient(135deg, #eef2ff, #f8fafc);
-            color: #1e293b;
-        }
+@keyframes bgMove{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
 
-        .container {
-            max-width: 1000px;
-            margin: 40px auto;
-            background: #ffffffcc;
-            backdrop-filter: blur(10px);
-            padding: 28px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        }
+/* GLASS EFFECT */
+.layout{
+    display:flex;
+    min-height:100vh;
+    backdrop-filter: blur(10px);
+}
 
-        h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
+/* SIDEBAR */
+.sidebar{
+    width:220px;
+    background:rgba(255,255,255,0.85);
+    padding:20px;
+}
 
-        p {
-            color: #64748b;
-        }
+.logo{
+    font-weight:700;
+    color:#2563eb;
+    margin-bottom:20px;
+}
 
-        .upload-box {
-            margin: 24px 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #e0f2fe, #eef2ff);
-            border-radius: 12px;
-        }
+.menu div{
+    padding:10px;
+    border-radius:8px;
+    cursor:pointer;
+}
+.menu div:hover{
+    background:#e0e7ff;
+}
 
-        input[type="file"] {
-            padding: 6px;
-        }
+/* MAIN */
+.main{
+    flex:1;
+    padding:24px;
+    background:rgba(255,255,255,0.9);
+}
 
-        button {
-            padding: 10px 16px;
-            border: none;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s ease;
-        }
+/* HEADER */
+h1{margin-bottom:10px}
 
-        button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 15px rgba(59,130,246,0.3);
-        }
+/* UPLOAD */
+.upload{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 16px;
-            border-radius: 12px;
-            overflow: hidden;
-        }
+input[type=file]{
+    padding:8px;
+    border-radius:8px;
+    border:1px solid #ccc;
+}
 
-        table th {
-            background: #1e293b;
-            color: white;
-            padding: 12px;
-        }
+button{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:10px 16px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:.2s;
+}
 
-        table td {
-            padding: 12px;
-            border-bottom: 1px solid #e2e8f0;
-        }
+button:hover{
+    transform:scale(1.05);
+}
 
-        tbody tr:hover {
-            background: #f1f5f9;
-        }
+/* TABLE */
+.table{
+    background:white;
+    border-radius:12px;
+    overflow:hidden;
+}
 
-        .actions a {
-            margin-right: 10px;
-            text-decoration: none;
-            font-weight: 600;
-            padding: 6px 10px;
-            border-radius: 6px;
-            transition: 0.2s;
-        }
+.row{
+    display:grid;
+    grid-template-columns:40px 1fr 120px 180px 120px;
+    padding:12px;
+    border-bottom:1px solid #eee;
+}
 
-        .actions a:not(.delete) {
-            background: #e0f2fe;
-            color: #0284c7;
-        }
+.row.header{
+    background:#eef2ff;
+    font-weight:600;
+}
 
-        .actions a:not(.delete):hover {
-            background: #bae6fd;
-        }
+.row:hover{
+    background:#f9fafb;
+}
 
-        .actions a.delete {
-            background: #fee2e2;
-            color: #dc2626;
-        }
+/* ACTION */
+.actions a{
+    padding:5px 8px;
+    border-radius:6px;
+    margin-right:5px;
+    text-decoration:none;
+}
 
-        .actions a.delete:hover {
-            background: #fecaca;
-        }
+.download{background:#e0f2fe;color:#0369a1;}
+.delete{background:#fee2e2;color:#b91c1c;}
 
-        .empty {
-            padding: 20px;
-            text-align: center;
-            background: #fef3c7;
-            border-radius: 10px;
-        }
+/* ALERT */
+.alert{
+    padding:10px;
+    border-radius:8px;
+    margin-bottom:10px;
+}
+.success{background:#dcfce7;}
+.error{background:#fee2e2;}
 
-        .note {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #475569;
-        }
-
-        .success, .error {
-            padding: 14px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-
-        .success {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-    </style>
+.empty{
+    text-align:center;
+    padding:20px;
+}
+</style>
 </head>
 
 <body>
-<div class="container">
-    <h1>☁️ Simple Cloud Storage</h1>
-    <p>Simulasi sederhana cloud storage menggunakan PHP & folder server.</p>
 
-    <?php if (isset($_GET['status']) && $_GET['status'] === 'upload_success'): ?>
-        <div class="success">✅ File berhasil diupload</div>
-    <?php elseif (isset($_GET['status']) && $_GET['status'] === 'delete_success'): ?>
-        <div class="success">🗑️ File berhasil dihapus</div>
-    <?php elseif (isset($_GET['status']) && $_GET['status'] === 'error'): ?>
-        <div class="error">❌ Terjadi kesalahan</div>
-    <?php endif; ?>
+<div class="layout">
 
-    <div class="upload-box">
-        <h2>📤 Upload File</h2>
-        <form action="upload.php" method="post" enctype="multipart/form-data">
-            <input type="file" name="fileToUpload" required>
-            <button type="submit">Upload</button>
-        </form>
-    </div>
-
-    <h2>📁 Daftar File</h2>
-
-    <?php if (count($files) > 0): ?>
-        <table>
-            <thead>
-            <tr>
-                <th>No</th>
-                <th>Nama File</th>
-                <th>Ukuran</th>
-                <th>Terakhir Diubah</th>
-                <th>Aksi</th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($files as $index => $file): ?>
-                <tr>
-                    <td><?= $index + 1; ?></td>
-                    <td><?= htmlspecialchars($file['name']); ?></td>
-                    <td><?= formatFileSize($file['size']); ?></td>
-                    <td><?= date("d M Y, H:i", $file['modified']); ?></td>
-                    <td class="actions">
-                        <a href="download.php?file=<?= urlencode($file['name']); ?>">⬇️ Download</a>
-                        <a class="delete"
-                           href="delete.php?file=<?= urlencode($file['name']); ?>"
-                           onclick="return confirm('Yakin ingin menghapus file ini?');">
-                            🗑️ Hapus
-                        </a>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php else: ?>
-        <div class="empty">
-            📭 Belum ada file
-        </div>
-    <?php endif; ?>
-
-    <div class="note">
-        <strong>Catatan:</strong> Folder <code>uploads/</code> bertindak sebagai storage cloud.
+<div class="sidebar">
+    <div class="logo">☁️ MyCloud</div>
+    <div class="menu">
+        <div>📁 My Files</div>
+        <div>⭐ Favorites</div>
+        <div>🕘 Recent</div>
     </div>
 </div>
+
+<div class="main">
+
+<h1>My Files</h1>
+
+<?php if ($_GET['status'] ?? '' === 'upload_success'): ?>
+<div class="alert success">Upload berhasil</div>
+<?php endif; ?>
+
+<form class="upload" action="upload.php" method="post" enctype="multipart/form-data">
+    <input type="file" name="fileToUpload" required>
+    <button>Upload</button>
+</form>
+
+<div class="table">
+
+<div class="row header">
+    <div>#</div>
+    <div>Nama</div>
+    <div>Ukuran</div>
+    <div>Modified</div>
+    <div>Aksi</div>
+</div>
+
+<?php if(count($files)>0): ?>
+    <?php foreach($files as $i=>$f): ?>
+    <div class="row">
+        <div><?= $i+1 ?></div>
+        <div><?= htmlspecialchars($f['name']) ?></div>
+        <div><?= formatFileSize($f['size']) ?></div>
+        <div><?= date("d M Y H:i",$f['modified']) ?></div>
+        <div class="actions">
+            <a class="download" href="download.php?file=<?= urlencode($f['name']) ?>">⬇️</a>
+            <a class="delete" href="delete.php?file=<?= urlencode($f['name']) ?>">🗑️</a>
+        </div>
+    </div>
+    <?php endforeach; ?>
+<?php else: ?>
+    <div class="empty">Belum ada file</div>
+<?php endif; ?>
+
+</div>
+
+</div>
+</div>
+
 </body>
 </html>
